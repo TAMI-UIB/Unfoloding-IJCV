@@ -52,7 +52,6 @@ Run the following command:
    python test.py
    ```
 
-<!--
 ---
 ## 📌 Citation
 
@@ -68,4 +67,3 @@ If you find this work useful in your research, please consider citing:
   publisher={Springer}
 }
 ```
--->
