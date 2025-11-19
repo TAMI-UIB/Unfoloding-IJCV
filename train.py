@@ -5,7 +5,7 @@ import os
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from data.LOL import LOL_paired
-from model.CARNet import CARNet
+from model import model_dict
 from tqdm import tqdm
 from datetime import date
 from utils.loss import LossMSElpipsCosineColor
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     validation_loader = DataLoader(validation_set, batch_size=args.batch_size, shuffle=False)
 
 
-    model = CARNet[args.model](channels=train_set.channels(), batch_size= args.batch_size, stages=args.stages)
+    model = model_dict[args.model](channels=train_set.channels(), batch_size= args.batch_size, stages=args.stages)
     model = model.to(args.device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     criterion = LossMSElpipsCosineColor(device= args.device)
