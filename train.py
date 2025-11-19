@@ -1,22 +1,18 @@
 import argparse
 
 import torch
-from mpmath import arg
-from torch import nn
 import os
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from datasets.LOL_paired import LOL_paired, LOL_patches
-from models import model_dict
+from data.LOL import LOL_paired
+from model.CARNet import CARNet
 from tqdm import tqdm
 from datetime import date
-from utils.lossIJCV import LossMSElpipsCosineColor
+from utils.loss import LossMSElpipsCosineColor
 from torchmetrics.functional.image import peak_signal_noise_ratio as PSNR
 
 from datetime import datetime
-import torchvision.transforms as transforms
 import numpy as np
-import bm3d
 import random
 import lpips
 
@@ -26,7 +22,8 @@ import lpips
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset_path', type=str, default='/home/dani/datasets')
-    parser.add_argument('--model', type=str, default='IJCVProxGradMHAv2')
+    parser.add_argument('--data', type=str, default='LOL')
+    parser.add_argument('--model', type=str, default='CARNet')
     parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--epsilon', type=float, default=0.01)
@@ -44,14 +41,14 @@ if __name__ == '__main__':
     np.random.seed(SEED)
     random.seed(SEED)
 
-    train_set = LOL_paired(path=args.dataset_path, subset='train')
+    train_set = LOL_paired(path=args.dataset_path, type= args.data, subset='train')
     train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
 
-    validation_set = LOL_paired(path=args.dataset_path, subset='validation')
+    validation_set = LOL_paired(path=args.dataset_path, type= args.data, subset='validation')
     validation_loader = DataLoader(validation_set, batch_size=args.batch_size, shuffle=False)
 
 
-    model = model_dict[args.model](channels=train_set.channels(), batch_size= args.batch_size, stages=args.stages)
+    model = CARNet[args.model](channels=train_set.channels(), batch_size= args.batch_size, stages=args.stages)
     model = model.to(args.device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     criterion = LossMSElpipsCosineColor(device= args.device)
@@ -70,14 +67,12 @@ if __name__ == '__main__':
         total_loss = 0
         for batch in tqdm(train_loader, desc=f'Epoch {epoch+1}/{args.epochs}', unit='batch'):
             optimizer.zero_grad()
-            #selected_patch = random.randint(0, 4 - 1)
             gt_h, gt_l, L_l, R_l = batch
-            #gt_h, gt_l, L_l, R_l = gt_h[:, selected_patch, :, :, :], gt_l[:, selected_patch, :, :, :], L_l[:, selected_patch, :, :, :], R_l[:, selected_patch, :, :, :]
             gt_h = gt_h.to(args.device)
             gt_l = gt_l.to(args.device)
             L_l = L_l.to(args.device)
             R_l = R_l.to(args.device)
-            oL, oR, oN_p, Itilla, L_stages, R_stages, N_stages = model(gt_l, L_l, R_l)
+            oL, oR, = model(gt_l, L_l, R_l)
             image=oR*oL
             loss = criterion(gt_h, image)
             loss.backward()
@@ -94,7 +89,7 @@ if __name__ == '__main__':
             L_l = L_l.to(args.device)
             R_l = R_l.to(args.device)
             with torch.no_grad():
-                oL, oR, oN_p, Itilla, L_stages, R_stages, N_stages = model(gt_l, L_l, R_l)
+                oL, oR = model(gt_l, L_l, R_l)
             image=oR*oL
             loss = criterion(gt_h, image)
             image_cpu= image.to('cpu')
@@ -108,7 +103,7 @@ if __name__ == '__main__':
         writer.add_scalar('LPIPS/validation', total_lpips / len(validation_loader), epoch)
         writer.add_scalar('PSNR/validation', total_psnr / len(validation_loader), epoch)
 
-        path= f'/home/dani/projects/IJCVProximalGradient/ckptv2/LOLv2_model_ok/{args.model}_{epoch}.pth'
+        path= f'./ckpt/{args.data}/{args.model}_{epoch}.pth'
         os.makedirs(os.path.dirname(path), exist_ok=True)
         torch.save(model.state_dict(), path)
 

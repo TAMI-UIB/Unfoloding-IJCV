@@ -7,11 +7,11 @@ import torchvision.transforms as transforms
 
 
 class LOL_paired(torch.utils.data.Dataset):
-    def __init__(self, path, subset):
+    def __init__(self, path, type, subset):
         super(LOL_paired, self).__init__()
-        self.path_h = f'{path}/LOLv2/{subset}/high'
+        self.path_h = f'{path}/{type}/{subset}/high'
 
-        self.path_l = f'{path}/LOLv2/{subset}/low'
+        self.path_l = f'{path}/{type}/{subset}/low'
         self.image_list_h = []
         self.image_list_l = []
         high= os.listdir(self.path_h)
