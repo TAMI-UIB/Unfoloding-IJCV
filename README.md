@@ -34,7 +34,16 @@ Images captured under low-light conditions present significant limitations in ma
 
 ## ⚙️ Setup
 
-TO DO: Prepare Dataset
+You should list your dataset as the following structure:
+
+<pre> dataset/ 
+         your_dataset/ 
+            train/ 
+               high/ 
+               low/ 
+            eval/ 
+               high/
+               low/ </pre>
 
 ---
 ## Train
