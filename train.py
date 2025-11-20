@@ -47,7 +47,7 @@ if __name__ == '__main__':
         train_set = LOL_paired(path=args.dataset_path, type= args.data, subset='train')
     train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
 
-    validation_set = LOL_paired(path=args.dataset_path, type= args.data, subset='validation')
+    validation_set = LOL_paired(path=args.dataset_path, type= args.data, subset='eval')
     validation_loader = DataLoader(validation_set, batch_size=args.batch_size, shuffle=False)
 
 

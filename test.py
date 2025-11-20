@@ -20,9 +20,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     target_dir = f"./results/{args.data}"
-    weights_path=f"./ckpt/{args.data}/{args.model}_5.pth"
+    weights_path=f"./ckpt/{args.data}/{args.model}.pth"
     os.makedirs(os.path.dirname(target_dir), exist_ok=True)
-    validation_set = LOL_paired(path=args.dataset_path, type= args.data, subset='validation')
+    validation_set = LOL_paired(path=args.dataset_path, type= args.data, subset='eval')
     validation_loader = DataLoader(validation_set, batch_size=args.batch_size, shuffle=False)
 
     model = model_dict[args.model](channels=validation_set.channels(), batch_size=args.batch_size, stages=args.stages)
