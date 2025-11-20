@@ -21,7 +21,7 @@ import lpips
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset_path', type=str, default='/home/dani/datasets')
+    parser.add_argument('--dataset_path', type=str, default='./datasets')
     parser.add_argument('--data', type=str, default='LOL')
     parser.add_argument('--model', type=str, default='CARNet')
     parser.add_argument('--epochs', type=int, default=1000)
