@@ -4,7 +4,7 @@ import torch
 import os
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from data.LOL import LOL_paired
+from data.PairedData import LOL_paired, LOL_patches
 from model import model_dict
 from tqdm import tqdm
 from datetime import date
@@ -29,6 +29,7 @@ if __name__ == '__main__':
     parser.add_argument('--epsilon', type=float, default=0.01)
     parser.add_argument('--stages', type=int, default=5)
     parser.add_argument('--lr', type=float, default=0.0001)
+    parser.add_argument("--patches", action="store_true")
 
     parser.add_argument('--device', type=str, default='cuda:1')
 
@@ -40,8 +41,10 @@ if __name__ == '__main__':
     torch.cuda.manual_seed_all(SEED)
     np.random.seed(SEED)
     random.seed(SEED)
-
-    train_set = LOL_paired(path=args.dataset_path, type= args.data, subset='train')
+    if args.patches:
+        train_set = LOL_patches(path=args.dataset_path, type=args.data, subset='train')
+    else:
+        train_set = LOL_paired(path=args.dataset_path, type= args.data, subset='train')
     train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
 
     validation_set = LOL_paired(path=args.dataset_path, type= args.data, subset='validation')
@@ -62,12 +65,15 @@ if __name__ == '__main__':
     hour = datetime.now()
     formatted_time = hour.strftime("%H:%M:%S")
 
-    writer = SummaryWriter(f'/home/dani/projects/IJCVProximalGradient/logsv2/LOLv2_model_ok/')
+    writer = SummaryWriter(f'./logs/{args.data}_{args.model}/')
     for epoch in range(args.epochs):
         total_loss = 0
         for batch in tqdm(train_loader, desc=f'Epoch {epoch+1}/{args.epochs}', unit='batch'):
             optimizer.zero_grad()
             gt_h, gt_l, L_l, R_l = batch
+            if args.patches:
+                selected_patch = random.randint(0, 4 - 1)
+                gt_h, gt_l, L_l, R_l = (gt_h[:, selected_patch, :, :, :], gt_l[:, selected_patch, :, :, :], L_l[:, selected_patch,:, :,:], R_l[:, selected_patch,:, :, :])
             gt_h = gt_h.to(args.device)
             gt_l = gt_l.to(args.device)
             L_l = L_l.to(args.device)
@@ -81,7 +87,6 @@ if __name__ == '__main__':
         writer.add_scalar('Loss/train', total_loss / len(train_loader), epoch)
         total_loss = 0
         total_lpips = 0
-        total_psnr = 0
         for batch in tqdm(validation_loader, unit='batch'):
             gt_h, gt_l, L_l, R_l = batch
             gt_h = gt_h.to(args.device)
@@ -95,13 +100,10 @@ if __name__ == '__main__':
             image_cpu= image.to('cpu')
             gt_h_cpu= gt_h.to('cpu')
             lpips_value = loss_lpips.forward(gt_h_cpu, image_cpu)
-            psnr_value = PSNR(image, gt_h)
             total_lpips += lpips_value
             total_loss += loss.item()
-            total_psnr += psnr_value
         writer.add_scalar('Loss/validation', total_loss / len(validation_loader), epoch)
         writer.add_scalar('LPIPS/validation', total_lpips / len(validation_loader), epoch)
-        writer.add_scalar('PSNR/validation', total_psnr / len(validation_loader), epoch)
 
         path= f'./ckpt/{args.data}/{args.model}_{epoch}.pth'
         os.makedirs(os.path.dirname(path), exist_ok=True)
